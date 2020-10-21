@@ -33,7 +33,7 @@ object TelecomCircleDemoApp {
     }
     val data = SC.textFile(path)
       .map(x => x.split(","))
-      .map({ case Array(id1, id2) => (id1.toLong, id2.toLong) })
+      .map { case Array(id1, id2) => (id1.toLong, id2.toLong) }
     val circles = findCircles(data, depth)
     circles.collect().foreach(println)
   }
@@ -49,40 +49,18 @@ object TelecomCircleDemoApp {
     val vertices = calls.map(t => (t._1, Set[Long]()))
       .union(calls.map(t => (t._2, Set[Long]())))
       .distinct()
-    val edges = calls.map({ case (k, v) => Edge(k, v, None) })
-    val graphFull = Graph(vertices, edges)
-    var graph = graphFull.filter(
-      graph => {
-        val degrees = graph.outDegrees
-        graph.outerJoinVertices(degrees) {(vid, data, deg) => deg.getOrElse(0)}
-      },
-      vpred = (vid: Long, deg:Int) => deg <= MAX_CALLS_COUNT
-    )
-
-    /**
-     * Merge two sets
-     *
-     * @param a set
-     * @param b set
-     * @return union
-     */
-    def unionSets(a: Set[Long], b: Set[Long]): Set[Long] = {
-      println("++++++++++++++++", a, b)
-      a ++ b
-    }
+    val edges = calls.map(t => (t, 1L))
+      .reduceByKey(_ + _)
+      .filter(_._2 <= MAX_CALLS_COUNT)
+      .map { case ((src, dst), v) => Edge(src, dst, v) }
+    var graph = Graph(vertices, edges)
 
     for (_ <- 1 to depth) {
       val msgs = graph.aggregateMessages[Set[Long]](
         ctx => ctx.sendToSrc(ctx.dstAttr + ctx.dstId),
-        unionSets
+        _ ++ _
       )
-      graph = Graph(
-        graph.vertices.leftJoin(msgs) {
-          case (vid, a, None) => a
-          case (vid, a, Some(b)) => a ++ b
-        },
-        graph.edges
-      )
+      graph = graph.joinVertices(msgs) { case (_, a, b) => a ++ b }
     }
     graph.vertices.filter(_._2.nonEmpty)
   }
