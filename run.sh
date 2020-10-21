@@ -1,0 +1,1 @@
+java -jar ./target/telecom-circle-demo-1.0-SNAPSHOT-jar-with-dependencies.jar src/test/resources/1.csv 2
