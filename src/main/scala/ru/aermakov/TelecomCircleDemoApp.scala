@@ -26,21 +26,29 @@ object TelecomCircleDemoApp {
       System.exit(-1)
     }
     val path = args.head
-    var depth = args(1).toInt
+    val depth = args(1).toInt
     if (depth > MAX_DEPTH) {
       println(f"Depth $depth exceeded max $MAX_DEPTH")
       System.exit(-1)
     }
-    val data = SC.textFile(path)
-      .map(x => x.split(","))
-      .map { case Array(id1, id2) => (id1.toLong, id2.toLong) }
+    val data = readData(path)
     val circles = findCircles(data, depth)
     circles.collect().foreach(println)
   }
 
   /**
+   * Read data from CSV file
+   * @param path path to file
+   * @return RDD of tuples
+   */
+  def readData(path: String): RDD[(Long, Long)] = {
+    SC.textFile(path)
+      .map(x => x.split(","))
+      .map { case Array(id1, id2) => (id1.trim.toLong, id2.trim.toLong) }
+  }
+
+  /**
    * Find user circles by calls
-   *
    * @param calls user calls table
    * @param depth search depth
    * @return user circles table
