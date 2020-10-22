@@ -1,7 +1,8 @@
 package ru.aermakov
 
+import org.apache.spark.graphx.PartitionStrategy.RandomVertexCut
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.graphx.{Edge, Graph}
+import org.apache.spark.graphx.{EdgeTriplet, Graph}
 import org.apache.spark.rdd.RDD
 
 /**
@@ -33,7 +34,7 @@ object TelecomCircleDemoApp {
     }
     val data = readData(path)
     val circles = findCircles(data, depth)
-    circles.collect().foreach(println)
+    circles.saveAsTextFile("result.csv")
   }
 
   /**
@@ -54,15 +55,11 @@ object TelecomCircleDemoApp {
    * @return user circles table
    */
   def findCircles(calls: RDD[(Long, Long)], depth: Int): RDD[(Long, Set[Long])] = {
-    val vertices = calls.map(t => (t._1, Set[Long]()))
-      .union(calls.map(t => (t._2, Set[Long]())))
-      .distinct()
-    val edges = calls.map(t => (t, 1L))
-      .reduceByKey(_ + _)
-      .filter(_._2 <= MAX_CALLS_COUNT)
-      .map { case ((src, dst), v) => Edge(src, dst, v) }
-    var graph = Graph(vertices, edges)
-
+    var graph = Graph.fromEdgeTuples(calls, Set[Long](), Some(RandomVertexCut))
+      .filter(
+        identity,
+        (g: EdgeTriplet[Set[Long], Int]) => g.attr <= MAX_CALLS_COUNT
+      )
     for (_ <- 1 to depth) {
       val msgs = graph.aggregateMessages[Set[Long]](
         ctx => ctx.sendToSrc(ctx.dstAttr + ctx.dstId),
