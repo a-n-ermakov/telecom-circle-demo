@@ -17,7 +17,7 @@ object TestDataGenerator {
     val pwd = System.getProperty("user.dir")
 
     val rnd = new Random(42L)
-    val pw = new PrintWriter(new FileOutputStream(f"$pwd/src/test/resources/1m.csv"))
+    val pw = new PrintWriter(new FileOutputStream(f"$pwd/src/test/resources/$userCount.csv"))
     try {
       for (src <- 0 to userCount) {
         val callCount = callCountMin + (rnd.nextFloat() * (callCountMax - callCountMin)).toInt

@@ -60,6 +60,7 @@ object TelecomCircleDemoApp {
         identity,
         (g: EdgeTriplet[Set[Long], Int]) => g.attr <= MAX_CALLS_COUNT
       )
+    // todo recursion
     for (_ <- 1 to depth) {
       val msgs = graph.aggregateMessages[Set[Long]](
         ctx => ctx.sendToSrc(ctx.dstAttr + ctx.dstId),
